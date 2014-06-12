@@ -104,9 +104,10 @@ Public ManifoldFlow(2) 'flow measurements, converted to ml/min
 Alias ManifoldFlow(1) = ExcessFlow 			:	Units ExcessFlow = ml_min
 Alias ManifoldFlow(2) = SampleFlow 			:	Units SampleFlow = ml_min
 Const ManifoldFlowMult =  0.002 'convert mV To V AND account For VDIV2.1
-Public PressureSampling(2)
+Public PressureSampling(3)
 Alias PressureSampling(1) = SamplePress		:	Units SamplePress = mb
 Alias PressureSampling(2) = BypassPress 	:	Units BypassPress = mb
+Alias PressureSampling(3) = TGAPress 		:	Units BypassPress = mb
 Dim PressureControl(3) 'temporary array to store all 3 pressure control variables
 
 'Sampling Manifold Pressure Control Variables
@@ -297,7 +298,7 @@ BeginProg
 	Dfact(2) = 0.0 / (ScanRate_ms/1000)
 	Control_sign(2) = 1 'if pressure is too high, increase duty cycle
 
-	PressureSetPt(3) = 30
+	PressureSetPt(3) = 600
 	DutyCycle(3) = 0.0
 	Pfact(3) = 0.015
 	Ifact(3) = 0.015 * (ScanRate_ms/1000)
