@@ -109,50 +109,6 @@ Alias PressureSampling(1) = SamplePress		:	Units SamplePress = mb
 Alias PressureSampling(2) = BypassPress 	:	Units BypassPress = mb
 Dim PressureControl(3) 'temporary array to store all 3 pressure control variables
 
-'------------ TGA DATA ---------------------------------------------
-'Public TGAData(28) 'Array for Results from TGA
-
-'Aliases and Units for TGA data:
-'Alias TGAData(1)  =  SiteCount
-'Alias TGAData(2)  =  CO2		          	:	Units CO2 = ppmv
-'Alias TGAData(3)  =  N2O			          :	Units N2O = ppmv
-'Alias TGAData(4)  =  TGAStatus		      :	Units TGAStatus = code
-'Alias TGAData(5)  =  TGApressure	    	:	Units TGApressure = mb
-'Alias TGAData(6)  =  LaserTemp	      	:	Units LaserTemp = K
-'Alias TGAData(7)  =  DCCurrentA	      	:	Units DCCurrentA = mA
-'Alias TGAData(8)  =  DCCurrentB	      	:	Units DCCurrentB = mA
-'Alias TGAData(9)  =  TGAAnalog1	      	:	Units TGAAnalog1 = Volts
-'Alias TGAData(10) =  TGATemp1		        :	Units TGATemp1 = degC
-'Alias TGAData(11) =  TGATemp2		        :	Units TGATemp2 = degC
-'Alias TGAData(12) =  LaserHeater	    	:	Units LaserHeater = Volts
-'Alias TGAData(13) =  RefDetSigA		      :	Units RefDetSigA = mV
-'Alias TGAData(14) =  RefDetSigB		      :	Units RefDetSigB = mV
-'Alias TGAData(15) =  RefDetTransA	    	:	Units RefDetTransA = %
-'Alias TGAData(16) =  RefDetTransB	    	:	Units RefDetTransB = %
-'Alias TGAData(17) =  RefDetTemp		      :	Units RefDetTemp = degC
-'Alias TGAData(18) =  RefDetCooler	    	:	Units RefDetCooler = arb
-'Alias TGAData(19) =  RefDetGainOffset  	:	Units RefDetGainOffset = arb
-'Alias TGAData(20) =  SmpDetSigA		      :	Units SmpDetSigA = mV
-'Alias TGAData(21) =  SmpDetSigB		      :	Units SmpDetSigB = mV
-'Alias TGAData(22) =  SmpDetTransA	      :	Units SmpDetTransA = %
-'Alias TGAData(23) =  SmpDetTransB	      :	Units SmpDetTransB = %
-'Alias TGAData(24) =  SmpDetTemp		      :	Units SmpDetTemp = degC
-'Alias TGAData(25) =  SmpDetCooler		    :	Units SmpDetCooler = arb
-'Alias TGAData(26) =  SmpDetGainOffset	  :	Units SmpDetGainOffset = arb
-'Alias TGAData(27) =  TGATemp1DutyCycle  :	Units TGATemp1DutyCycle = arb
-'Alias TGAData(28) =  TGATemp2DutyCycle	:	Units TGATemp2DutyCycle = arb
-
-'Public diag_bits(9) As Boolean		'Warning flags.
-'Alias diag_bits(1) = ln_lck_a_off		'Line Lock for ramp A is OFF.
-'Alias diag_bits(2) = ln_lck_b_off		'Line Lock for ramp B is OFF.
-'Alias diag_bits(3) = ln_lck_c_off		'Line Lock for ramp C is OFF.
-'Alias diag_bits(4) = h_smp_det_sig	'Sample detector signal exceeded input range.
-'Alias diag_bits(5) = h_ref_det_sig	'Reference detector signal exceeded input range.
-'Alias diag_bits(6) = h_smp_det_temp	'Sample detector temperature is outside its specified range.
-'Alias diag_bits(7) = h_ref_det_temp	'Reference detector temperature is outside its specified range.
-'Alias diag_bits(8) = h_las_temp	  	'Laser temperature outside its specified range.
-'Alias diag_bits(9) = h_press		  	'Pressure is above is upper limit.
-
 'Sampling Manifold Pressure Control Variables
 Public PressureSetPt(3)
 Alias PressureSetPt(1) = SampleP_SetPt		:	Units SampleP_SetPt = mb
@@ -218,49 +174,28 @@ DataTable (RawData,True,-1)
 	DataInterval (0,0,mSec,10)
 	CardOut (0 ,-1)
 	Sample (1,Site,IEEE4)
-'	Sample (4,TGAData(1),IEEE4)
 	Sample (2,ManifoldFlow(1),IEEE4)
 	Sample (2,PressureSampling(1),IEEE4)
-'	Sample (1,TGAData(5),IEEE4) 'TGA pressure
 	Sample (3,DutyCycle(1),IEEE4)
 	Sample (1,LoggerTemp,IEEE4)
-'	Sample (2,TGAData(10),IEEE4) 'TGA temps
-'	Sample (2,TGAData(27),IEEE4) 'TGA temp duty cycles
 	Sample (1,StartSeqFlag,IEEE4)
 	Sample (1,SeqActiveFlag,IEEE4)
 EndTable
-
-'TGA diagnostic data table output when switching to new site
-'DataTable (TGADiag,((SeqActiveFlag AND SeqIndexPrev<>SeqIndex) OR NewSite),500)
-'	CardOut (0,50000)
-'	Average (28,TGAData(),IEEE4,False)
-'	StdDev (28,TGAData(),IEEE4,False)
-'	Maximum(28,TGAData(),IEEE4,False,False)
-'	Minimum(28,TGAData(),IEEE4,False,False)
-'EndTable
 
 'Site Table, output each time a site is completed.
 DataTable (SiteAvg,((SeqActiveFlag AND SeqIndexPrev<>SeqIndex) OR NewSite),3000)
 	CardOut(0,50000)
 	Sample (1,SiteOutput,IEEE4)
-'	Average (4,TGAData(1),IEEE4,AvgDisable)
 	Average (2,ManifoldFlow(1),IEEE4,AvgDisable)
 	Average (2,PressureSampling(1),IEEE4,AvgDisable)
-'	Average (1,TGAData(5),IEEE4,AvgDisable)
 	Average (3,DutyCycle(1),IEEE4,AvgDisable)
 	Average (1,LoggerTemp,IEEE4,AvgDisable)
-'	Average (2,TGAData(10),IEEE4,AvgDisable) 'TGA temps
-'	Average (2,TGAData(27),IEEE4,AvgDisable) 'TGA temp duty cycles
 	Average (1,V12out,IEEE4,AvgDisable)
 	Totalize (1,One,IEEE4,AvgDisable)
-'	StdDev (4,TGAData(1),IEEE4,AvgDisable)
 	StdDev (2,ManifoldFlow(1),IEEE4,AvgDisable)
 	StdDev (2,PressureSampling(1),IEEE4,AvgDisable)
-'	StdDev (1,TGAData(5),IEEE4,AvgDisable)
 	StdDev (3,DutyCycle(1),IEEE4,AvgDisable)
 	StdDev (1,LoggerTemp,IEEE4,AvgDisable)
-'	StdDev (2,TGAData(10),IEEE4,AvgDisable) 'TGA temps
-'	StdDev (2,TGAData(27),IEEE4,AvgDisable) 'TGA temp duty cycles
 	StdDev (1,V12out,IEEE4,AvgDisable)
 EndTable
 
@@ -276,144 +211,62 @@ DataTable (IntervalAvg,True,-1)
 	CardOut(0,200000)
 	DataInterval (0,AverageIntMin,Min,10)
 
-'	Average (3,TGAData(1),IEEE4,SiteDisable(1))
-'	FieldNames ("Count_1,CO2_1,N2O_1")
-'	StdDev (2,TGAData(2),IEEE4,SiteDisable(1))
-'	FieldNames ("CO2_STD_1,N2O_STD_1")
-'	Average (1,TGAData(1),IEEE4,SiteDisable(1))
-'	FieldNames ("TGA_Press_1")
 	Average (2,PressureSampling(1),IEEE4,SiteDisable(1))
 	FieldNames ("Press_1_1,Press_2_1")
 	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(1))
 	FieldNames ("Flow_1_1,Flow_2_1")
 	Totalize (1,One,IEEE4,SiteDisable(1))
 	FieldNames ("Samples_1")
-'	Covariance (3,TGAData(1),IEEE4,SiteDisable(1),3)
-'	FieldNames("S1CountCov1,S1CountCO2Cov,S1CountN2OCov")
 
-'	Average (3,TGAData(1),IEEE4,SiteDisable(2))
-'	FieldNames ("Count_2,CO2_2,N2O_2")
-'	StdDev (2,TGAData(2),IEEE4,SiteDisable(2))
-'	FieldNames ("CO2_STD_2,N2O_STD_2")
-'	Average (1,TGAData(5),IEEE4,SiteDisable(2))
-'	FieldNames ("TGA_Press_2")
 	Average (2,PressureSampling(1),IEEE4,SiteDisable(2))
 	FieldNames ("Press_1_2,Press_2_2")
 	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(2))
 	FieldNames ("Flow_1_2,Flow_2_2")
 	Totalize (1,One,IEEE4,SiteDisable(2))
 	FieldNames ("Samples_2")
-'	Covariance (3,TGAData(1),IEEE4,SiteDisable(2),3)
-'	FieldNames("S2CountCov1,S2CountCO2Cov,S2CountN2OCov")
 
-'	Average (3,TGAData(1),IEEE4,SiteDisable(3))
-'	FieldNames ("Count_3,CO2_3,N2O_3")
-'	StdDev (2,TGAData(2),IEEE4,SiteDisable(3))
-'	FieldNames ("CO2_STD_3,N2O_STD_3")
-'	Average (1,TGAData(5),IEEE4,SiteDisable(3))
-'	FieldNames ("TGA_Press_3")
 	Average (2,PressureSampling(1),IEEE4,SiteDisable(3))
 	FieldNames ("Press_1_3,Press_2_3")
 	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(3))
 	FieldNames ("Flow_1_3,Flow_2_3")
 	Totalize (1,One,IEEE4,SiteDisable(3))
 	FieldNames ("Samples_3")
-'	Covariance (3,TGAData(1),IEEE4,SiteDisable(3),3)
-'	FieldNames("S3CountCov1,S3CountCO2Cov,S3CountN2OCov")
 
-'	Average (3,TGAData(1),IEEE4,SiteDisable(4))
-'	FieldNames ("Count_4,CO2_4,N2O_4")
-'	StdDev (2,TGAData(2),IEEE4,SiteDisable(4))
-'	FieldNames ("CO2_STD_4,N2O_STD_4")
-'	Average (1,TGAData(5),IEEE4,SiteDisable(4))
-'	FieldNames ("TGA_Press_4")
 	Average (2,PressureSampling(1),IEEE4,SiteDisable(4))
 	FieldNames ("Press_1_4,Press_2_4")
 	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(4))
 	FieldNames ("Flow_1_4,Flow_2_4")
 	Totalize (1,One,IEEE4,SiteDisable(4))
 	FieldNames ("Samples_4")
-'	Covariance (3,TGAData(1),IEEE4,SiteDisable(4),3)
-'	FieldNames("S4CountCov1,S4CountCO2Cov,S4CountN2OCov")
 
-'	Average (3,TGAData(1),IEEE4,SiteDisable(5))
-'	FieldNames ("Count_5,CO2_5,N2O_5")
-'	StdDev (2,TGAData(2),IEEE4,SiteDisable(5))
-'	FieldNames ("CO2_STD_5,N2O_STD_5")
-'	Average (1,TGAData(5),IEEE4,SiteDisable(5))
-'	FieldNames ("TGA_Press_5")
 	Average (2,PressureSampling(1),IEEE4,SiteDisable(5))
 	FieldNames ("Press_1_5,Press_2_5")
 	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(5))
 	FieldNames ("Flow_1_5,Flow_2_5")
 	Totalize (1,One,IEEE4,SiteDisable(5))
 	FieldNames ("Samples_5")
-'	Covariance (3,TGAData(1),IEEE4,SiteDisable(5),3)
-'	FieldNames("S5CountCov1,S5CountCO2Cov,S5CountN2OCov")
 
-'	Average (3,TGAData(1),IEEE4,SiteDisable(6))
-'	FieldNames ("Count_6,CO2_6,N2O_6")
-'	StdDev (2,TGAData(2),IEEE4,SiteDisable(6))
-'	FieldNames ("CO2_STD_6,N2O_STD_6")
-'	Average (1,TGAData(5),IEEE4,SiteDisable(6))
-'	FieldNames ("TGA_Press_6")
 	Average (2,PressureSampling(1),IEEE4,SiteDisable(6))
 	FieldNames ("Press_1_6,Press_2_6")
 	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(6))
 	FieldNames ("Flow_1_6,Flow_2_6")
 	Totalize (1,One,IEEE4,SiteDisable(6))
 	FieldNames ("Samples_6")
-'	Covariance (3,TGAData(1),IEEE4,SiteDisable(6),3)
-'	FieldNames("S6CountCov1,S6CountCO2Cov,S6CountN2OCov")
 
-'	Average (3,TGAData(1),IEEE4,SiteDisable(7))
-'	FieldNames ("Count_7,CO2_7,N2O_7")
-'	StdDev (2,TGAData(2),IEEE4,SiteDisable(7))
-'	FieldNames ("CO2_STD_7,N2O_STD_7")
-'	Average (1,TGAData(5),IEEE4,SiteDisable(7))
-'	FieldNames ("TGA_Press_7")
 	Average (2,PressureSampling(1),IEEE4,SiteDisable(7))
 	FieldNames ("Press_1_7,Press_2_7")
 	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(7))
 	FieldNames ("Flow_1_7,Flow_2_7")
 	Totalize (1,One,IEEE4,SiteDisable(7))
 	FieldNames ("Samples_7")
-'	Covariance (3,TGAData(1),IEEE4,SiteDisable(7),3)
-'	FieldNames("S73CountCov1,S7CountCO2Cov,S7CountN2OCov")
 
-'	Average (3,TGAData(1),IEEE4,SiteDisable(8))
-'	FieldNames ("Count_8,CO2_8,N2O_8")
-'	StdDev (2,TGAData(2),IEEE4,SiteDisable(8))
-'	FieldNames ("CO2_STD_8,N2O_STD_8")
-'	Average (1,TGAData(5),IEEE4,SiteDisable(8))
-'	FieldNames ("TGA_Press_8")
 	Average (2,PressureSampling(1),IEEE4,SiteDisable(8))
 	FieldNames ("Press_1_8,Press_2_8")
 	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(8))
 	FieldNames ("Flow_1_8,Flow_2_8")
 	Totalize (1,One,IEEE4,SiteDisable(8))
 	FieldNames ("Samples_8")
-'	Covariance (3,TGAData(1),IEEE4,SiteDisable(8),3)
-'	FieldNames("S8CountCov1,S8CountCO2Cov,S8CountN2OCov")
 
-'	Totalize (1,One,IEEE4,NOT (ln_lck_a_off))
-'	FieldNames ("ln_lck_a_off_Tot")
-'	Totalize (1,One,IEEE4,NOT (ln_lck_b_off))
-'	FieldNames ("ln_lck_b_off_Tot")
-'	Totalize (1,One,IEEE4,NOT (ln_lck_c_off))
-'	FieldNames ("ln_lck_c_off_Tot")
-'	Totalize (1,One,IEEE4,NOT (h_smp_det_sig))
-'	FieldNames ("h_smp_det_sig_Tot")
-'	Totalize (1,One,IEEE4,NOT (h_ref_det_sig))
-'	FieldNames ("h_ref_det_sig_Tot")
-'	Totalize (1,One,IEEE4,NOT (h_smp_det_temp))
-'	FieldNames ("h_smp_det_temp_Tot")
-'	Totalize (1,One,IEEE4,NOT (h_ref_det_temp))
-'	FieldNames ("h_ref_det_temp_Tot")
-'	Totalize (1,One,IEEE4,NOT (h_las_temp))
-'	FieldNames ("h_las_temp_Tot")
-'	Totalize (1,One,IEEE4,NOT (h_press))
-'	FieldNames ("h_press_Tot")
 EndTable
 
 TimedControl (NumSitesInSeq,1000,mSec,1,SeqIndex,SiteValveCD16(),2)
@@ -504,7 +357,6 @@ BeginProg
 		If RH>100 AND RH<108 Then RH=100
 '____________________
 		'Measure sensors and set valves:
-'		TGA (TGAData(2),0,5,2)
 		SDMCD16AC (SiteValveCD16(),1,1)
 
 		'Measure the Pressure Transducers:
@@ -557,17 +409,6 @@ BeginProg
 		CallTable SiteAvg
 '		SiteCount = IntervalCount
 		CallTable IntervalAvg
-'		CallTable TGADiag
-		'Break up the TGA diagnostic flags into separate bits.
-'		ln_lck_a_off = (TGAStatus AND &h0001)/&h0001
-'		ln_lck_b_off = (TGAStatus AND &h0002)/&h0002
-'		ln_lck_c_off = (TGAStatus AND &h0004)/&h0004
-'		h_smp_det_sig = (TGAStatus AND &h0008)/&h0008
-'		h_ref_det_sig = (TGAStatus AND &h0010)/&h0010
-'		h_smp_det_temp = (TGAStatus AND &h0020)/&h0020
-'		h_ref_det_temp = (TGAStatus AND &h0040)/&h0040
-'		h_las_temp = (TGAStatus AND &h0080)/&h0080
-'		h_press = (TGAStatus AND &h0100)/&h0100
 
 		'_________________Sampling System Control__________________
 		SeqIndexPrev = SeqIndex
