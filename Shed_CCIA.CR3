@@ -338,8 +338,8 @@ BeginProg
 
 	' Load Site timing information. Enter numbers in seconds:
 	For J = 1 To NumSitesInSeq
-		CountsOnSite(J) = Scans_Sec * 15
-		OmitCounts(J) = Scans_Sec * 6
+		CountsOnSite(J) = Scans_Sec * 90
+		OmitCounts(J) = Scans_Sec * 30
 	Next J
 	'Initialize Variables
 	One = 1
