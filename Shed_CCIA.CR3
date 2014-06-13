@@ -342,14 +342,6 @@ BeginProg
 	Site = SiteSequence(SeqIndex)
 	SiteOutput = Site
 	Scan (ScanRate_ms,mSec,10,0)
-	  'HMP45C (6-wire) Temperature & Relative Humidity Sensor measurements AirTC and RH:
-'		PortSet(9,1)
-'		Delay(0,150,mSec)
-		VoltSE(AirTC,1,mV1000,1,0,0,_60Hz,0.1,-40.0)
-		VoltSE(RH,1,mV1000,2,0,0,_60Hz,0.1,0)
-'		PortSet(9,0)
-		If RH>100 AND RH<108 Then RH=100
-'____________________
 		'Measure sensors and set valves:
 		SDMCD16AC (SiteValveCD16(),1,1)
 
@@ -396,9 +388,6 @@ BeginProg
 		EndIf
 
 		'Call Data Tables and Store Data
-		CallTable(ShedTandRH_longAvg)
-		CallTable(ShedTandRH_fastAvg)
-		CallTable(ShedTandRH_inst)
 		CallTable RawData
 		CallTable SiteAvg
 '		SiteCount = IntervalCount
@@ -454,7 +443,24 @@ BeginProg
 		Next J
 		PWM (DutyCycle(1),4,200,uSec)
 		PWM (DutyCycle(2),5,200,uSec)
-
 	NextScan
+
+	' Measure shed temperature and RH on a slower timestep
+	SlowSequence
+		Scan(10,Sec,1,0)
+			  'HMP45C (6-wire) Temperature & Relative Humidity Sensor measurements AirTC and RH:
+			PortSet(9,1)
+			Delay(0,150,mSec)
+			VoltSE(AirTC,1,mV1000,1,0,0,_60Hz,0.1,-40.0)
+			VoltSE(RH,1,mV1000,2,0,0,_60Hz,0.1,0)
+			PortSet(9,0)
+			If RH>100 AND RH<108 Then RH=100
+
+			CallTable(ShedTandRH_longAvg)
+			CallTable(ShedTandRH_fastAvg)
+			CallTable(ShedTandRH_inst)
+		
+		NextScan
+	EndSequence
 EndProg
 
