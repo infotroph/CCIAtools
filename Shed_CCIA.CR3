@@ -107,22 +107,21 @@ Const ManifoldFlowMult =  0.002 'convert mV To V AND account For VDIV2.1
 Public PressureSampling(2)
 Alias PressureSampling(1) = SamplePress		:	Units SamplePress = mb
 Alias PressureSampling(2) = BypassPress 	:	Units BypassPress = mb
-Dim PressureControl(3) 'temporary array to store all 3 pressure control variables
+Dim PressureControl(2) 'temporary array to store all pressure control variables
 
 'Sampling Manifold Pressure Control Variables
-Public PressureSetPt(3)
+Public PressureSetPt(2)
 Alias PressureSetPt(1) = SampleP_SetPt		:	Units SampleP_SetPt = mb
 Alias PressureSetPt(2) = BypassP_SetPt		:	Units BypassP_SetPt = mb
-Alias PressureSetPt(3) = TGAPress_SetPt		:	Units TGAPress_SetPt = mb
-Dim P(3),I(3),D(3),D2(3)
-Dim Control_sign(3),DC_delta
-Public DutyCycle(3)
+Dim P(2),I(2),D(2),D2(2)
+Dim Control_sign(2),DC_delta
+Public DutyCycle(3) ' third value is a constant
 Alias DutyCycle(1) = SampleP_DutyCycle		:	Units SampleP_DutyCycle = arb
 Alias DutyCycle(2) = BypassP_DutyCycle		:	Units BypassP_DutyCycle = arb
 Alias DutyCycle(3) = TGAPress_DutyCycle		:	Units TGAPress_DutyCycle = arb
 
-Public Pfact(3),Ifact(3),Dfact(3)
-Dim PrevPress(3),PrevD(3)
+Public Pfact(2),Ifact(2),Dfact(2)
+Dim PrevPress(2),PrevD(2)
 
 'Variables that control valve switching and averaging periods
 
@@ -297,12 +296,7 @@ BeginProg
 	Dfact(2) = 0.0 / (ScanRate_ms/1000)
 	Control_sign(2) = 1 'if pressure is too high, increase duty cycle
 
-	PressureSetPt(3) = 600
-	DutyCycle(3) = 0.0
-	Pfact(3) = 0.015
-	Ifact(3) = 0.015 * (ScanRate_ms/1000)
-	Dfact(3) = 0.0 / (ScanRate_ms/1000)
-	Control_sign(3) = -1 'if pressure is too high, reduce duty cycle
+	DutyCycle(3) = 0.4 'this valve not used, just sends air to balance vacuum in sample line
 
 	'------------Initialize Manifold Valve control ---------
 	'Edit following Sections to change defaults
@@ -438,8 +432,7 @@ BeginProg
 		'-----------------Sampling System PRESSURE CONTROL-----------------------------
 		PressureControl(1) = PressureSampling(1)
 		PressureControl(2) = PressureSampling(2)
-		PressureControl(3) = 0
-		For J = 1 To 3
+		For J = 1 To 2
 			If PressureControl(J) <> NAN Then 'put entire block in If statement; do nothing if input is NAN
 				P(J) = PressureControl(J) - PressureSetPt(J) 'pressure error
 				D(J) = PressureControl(J) - PrevPress(J) 'derivative of pressure error
@@ -461,7 +454,6 @@ BeginProg
 		Next J
 		PWM (DutyCycle(1),4,200,uSec)
 		PWM (DutyCycle(2),5,200,uSec)
-		PWM (DutyCycle(3),7,200,uSec)
 
 	NextScan
 EndProg
