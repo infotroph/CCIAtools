@@ -104,10 +104,9 @@ Public ManifoldFlow(2) 'flow measurements, converted to ml/min
 Alias ManifoldFlow(1) = ExcessFlow 			:	Units ExcessFlow = ml_min
 Alias ManifoldFlow(2) = SampleFlow 			:	Units SampleFlow = ml_min
 Const ManifoldFlowMult =  0.002 'convert mV To V AND account For VDIV2.1
-Public PressureSampling(3)
+Public PressureSampling(2)
 Alias PressureSampling(1) = SamplePress		:	Units SamplePress = mb
 Alias PressureSampling(2) = BypassPress 	:	Units BypassPress = mb
-Alias PressureSampling(3) = TGAPress 		:	Units BypassPress = mb
 Dim PressureControl(3) 'temporary array to store all 3 pressure control variables
 
 'Sampling Manifold Pressure Control Variables
@@ -439,7 +438,7 @@ BeginProg
 		'-----------------Sampling System PRESSURE CONTROL-----------------------------
 		PressureControl(1) = PressureSampling(1)
 		PressureControl(2) = PressureSampling(2)
-'		PressureControl(3) = TGApressure
+		PressureControl(3) = 0
 		For J = 1 To 3
 			If PressureControl(J) <> NAN Then 'put entire block in If statement; do nothing if input is NAN
 				P(J) = PressureControl(J) - PressureSetPt(J) 'pressure error
