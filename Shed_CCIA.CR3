@@ -290,7 +290,7 @@ BeginProg
 	Dfact(1) = 0.0 / (ScanRate_ms/1000)
 	Control_sign(1) = 1 ' if pressure is too high,increase duty cycle
 
-	PressureSetPt(2) = 900
+	PressureSetPt(2) = 700
 	DutyCycle(2) = 0.7
 	Pfact(2) = 0.0005
 	Ifact(2) = 0.002 * (ScanRate_ms/1000)
