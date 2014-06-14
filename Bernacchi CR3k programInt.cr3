@@ -1,0 +1,575 @@
+'CR3000 Series Datalogger
+
+'CR3000 Wiring:
+'Analog
+'1H
+'1L
+'2H
+'2L
+'3H
+'3L
+'4H
+'4L
+'5H
+'5L
+'6H
+'6L
+'7H
+'7L
+'8H		  White - Sample Pressure
+'8L 		Green - Sample Pressure
+'9H 		White - Bypass Pressure
+'9L		  Green - Bypass Pressure
+'10H
+'10L
+'11H
+'11L
+'12H		Voltage Divider TIM, H - White - Sample Flow
+'12L 		Voltage Divider TIM, L - Green - Sample Flow
+'13H		Voltage Divider TIM, H - White - Bypass Flow
+'13L 		Voltage Divider TIM, L - Green - Bypass Flow
+'14H		Voltage Divider TIM, H - Red - 12 V
+'14L 		Voltage Divider TIM, L - Black - G
+
+'G      Clear shield from all signal cables
+
+'SDM Connections
+'C1	  	Green - SDM Data
+'C2		  White - SDM Clock
+'C3		  Brown - SDM Enable
+'G		  Black - SDM reference
+'			  Clear - SDM shield
+'+12   	Red - Not Connected
+
+'Control Ports
+'C1
+'C2
+'C3
+'C4		  Green - Sample Pressure control valve
+'C5		  White - Bypass Pressure control valve
+'C6
+'C7		  Brown - TGA Pressure control valve
+'C8
+
+'Power
+'5V 		Red - to pressure transducers
+'G    	Black - to pressure transducers
+
+'12V		Red - TIM on 14H to flow transducers
+'G    	Black - TIM on 14L to flow transducers
+
+PipeLineMode
+
+'-----------------Sampling Manifold Valve Control---------------------------
+
+Const NumSitesInSeq = 8
+Const NumberofSites = 8
+Const AverageIntMin = 30
+Const ScanRate_ms = 100	'ScanRate in milliseconds
+Const Scans_Sec = 1000/ScanRate_ms
+
+Dim SiteSequence(NumSitesInSeq) As Long
+Dim SiteValve(NumberofSites) As Long
+Dim SiteValveCD16(NumSitesInSeq,2) As Long
+Dim sync_interval As Long
+Dim AvgDisable As Boolean
+Dim SiteDisable(NumberofSites) As Boolean
+Dim NewSite As Boolean
+
+Public StartSeqFlag As Boolean 'Set to sync to time and start auto site switching
+Public SeqActiveFlag As Boolean 'Set false to disable auto site switching
+
+Public Site As Long
+Public SiteOutput As Long
+Public Count As Long
+Dim IntervalCount As Long
+Public SeqIndex As Long
+Public EndOmit As Boolean
+
+Dim SeqIndexPrev As Long, Reset(2) As Boolean
+
+'Variables for Measurements
+
+'------------------------Sampling Manifold-----------------------------
+Public BatteryVolts								:	Units BatteryVolts = Volts
+Public V12out										  :	Units V12out = Volts
+Public LoggerTemp                 : Units LoggerTemp = degC
+
+Dim ManifoldFlowV(2) 'measured voltage for manifold flow sensors
+Dim Vsig 'temporary variable for mass flow calculation
+Public ManifoldFlow(2) 'flow measurements, converted to ml/min
+Alias ManifoldFlow(1) = ExcessFlow 			:	Units ExcessFlow = ml_min
+Alias ManifoldFlow(2) = SampleFlow 			:	Units SampleFlow = ml_min
+Const ManifoldFlowMult =  0.002 'convert mV To V AND account For VDIV2.1
+Public PressureSampling(2)
+Alias PressureSampling(1) = SamplePress		:	Units SamplePress = mb
+Alias PressureSampling(2) = BypassPress 	:	Units BypassPress = mb
+Dim PressureControl(3) 'temporary array to store all 3 pressure control variables
+
+'------------ TGA DATA ---------------------------------------------
+Public TGAData(28) 'Array for Results from TGA
+
+'Aliases and Units for TGA data:
+Alias TGAData(1)  =  SiteCount
+Alias TGAData(2)  =  CO2		          	:	Units CO2 = ppmv
+Alias TGAData(3)  =  N2O			          :	Units N2O = ppmv
+Alias TGAData(4)  =  TGAStatus		      :	Units TGAStatus = code
+Alias TGAData(5)  =  TGApressure	    	:	Units TGApressure = mb
+Alias TGAData(6)  =  LaserTemp	      	:	Units LaserTemp = K
+Alias TGAData(7)  =  DCCurrentA	      	:	Units DCCurrentA = mA
+Alias TGAData(8)  =  DCCurrentB	      	:	Units DCCurrentB = mA
+Alias TGAData(9)  =  TGAAnalog1	      	:	Units TGAAnalog1 = Volts
+Alias TGAData(10) =  TGATemp1		        :	Units TGATemp1 = degC
+Alias TGAData(11) =  TGATemp2		        :	Units TGATemp2 = degC
+Alias TGAData(12) =  LaserHeater	    	:	Units LaserHeater = Volts
+Alias TGAData(13) =  RefDetSigA		      :	Units RefDetSigA = mV
+Alias TGAData(14) =  RefDetSigB		      :	Units RefDetSigB = mV
+Alias TGAData(15) =  RefDetTransA	    	:	Units RefDetTransA = %
+Alias TGAData(16) =  RefDetTransB	    	:	Units RefDetTransB = %
+Alias TGAData(17) =  RefDetTemp		      :	Units RefDetTemp = degC
+Alias TGAData(18) =  RefDetCooler	    	:	Units RefDetCooler = arb
+Alias TGAData(19) =  RefDetGainOffset  	:	Units RefDetGainOffset = arb
+Alias TGAData(20) =  SmpDetSigA		      :	Units SmpDetSigA = mV
+Alias TGAData(21) =  SmpDetSigB		      :	Units SmpDetSigB = mV
+Alias TGAData(22) =  SmpDetTransA	      :	Units SmpDetTransA = %
+Alias TGAData(23) =  SmpDetTransB	      :	Units SmpDetTransB = %
+Alias TGAData(24) =  SmpDetTemp		      :	Units SmpDetTemp = degC
+Alias TGAData(25) =  SmpDetCooler		    :	Units SmpDetCooler = arb
+Alias TGAData(26) =  SmpDetGainOffset	  :	Units SmpDetGainOffset = arb
+Alias TGAData(27) =  TGATemp1DutyCycle  :	Units TGATemp1DutyCycle = arb
+Alias TGAData(28) =  TGATemp2DutyCycle	:	Units TGATemp2DutyCycle = arb
+
+Public diag_bits(9) As Boolean		'Warning flags.
+Alias diag_bits(1) = ln_lck_a_off		'Line Lock for ramp A is OFF.
+Alias diag_bits(2) = ln_lck_b_off		'Line Lock for ramp B is OFF.
+Alias diag_bits(3) = ln_lck_c_off		'Line Lock for ramp C is OFF.
+Alias diag_bits(4) = h_smp_det_sig	'Sample detector signal exceeded input range.
+Alias diag_bits(5) = h_ref_det_sig	'Reference detector signal exceeded input range.
+Alias diag_bits(6) = h_smp_det_temp	'Sample detector temperature is outside its specified range.
+Alias diag_bits(7) = h_ref_det_temp	'Reference detector temperature is outside its specified range.
+Alias diag_bits(8) = h_las_temp	  	'Laser temperature outside its specified range.
+Alias diag_bits(9) = h_press		  	'Pressure is above is upper limit.
+
+'Sampling Manifold Pressure Control Variables
+Public PressureSetPt(3)
+Alias PressureSetPt(1) = SampleP_SetPt		:	Units SampleP_SetPt = mb
+Alias PressureSetPt(2) = BypassP_SetPt		:	Units BypassP_SetPt = mb
+Alias PressureSetPt(3) = TGAPress_SetPt		:	Units TGAPress_SetPt = mb
+Dim P(3),I(3),D(3),D2(3)
+Dim Control_sign(3),DC_delta
+Public DutyCycle(3)
+Alias DutyCycle(1) = SampleP_DutyCycle		:	Units SampleP_DutyCycle = arb
+Alias DutyCycle(2) = BypassP_DutyCycle		:	Units BypassP_DutyCycle = arb
+Alias DutyCycle(3) = TGAPress_DutyCycle		:	Units TGAPress_DutyCycle = arb
+
+Public Pfact(3),Ifact(3),Dfact(3)
+Dim PrevPress(3),PrevD(3)
+
+'Variables that control valve switching and averaging periods
+
+Public CountsOnSite(NumSitesInSeq) As Long
+Public OmitCounts(NumSitesInSeq) As Long
+Dim J As Long
+Dim One
+
+'------------------------------------------------------------------------
+DataTable (RawData,True,-1)
+	DataInterval (0,0,mSec,10)
+	CardOut (0 ,-1)
+	Sample (1,Site,IEEE4)
+	Sample (4,TGAData(1),IEEE4)
+	Sample (2,ManifoldFlow(1),IEEE4)
+	Sample (2,PressureSampling(1),IEEE4)
+	Sample (1,TGAData(5),IEEE4) 'TGA pressure
+	Sample (3,DutyCycle(1),IEEE4)
+	Sample (1,LoggerTemp,IEEE4)
+	Sample (2,TGAData(10),IEEE4) 'TGA temps
+	Sample (2,TGAData(27),IEEE4) 'TGA temp duty cycles
+	Sample (1,StartSeqFlag,IEEE4)
+	Sample (1,SeqActiveFlag,IEEE4)
+EndTable
+
+'TGA diagnostic data table output when switching to new site
+DataTable (TGADiag,((SeqActiveFlag AND SeqIndexPrev<>SeqIndex) OR NewSite),500)
+	CardOut (0,50000)
+	Average (28,TGAData(),IEEE4,False)
+	StdDev (28,TGAData(),IEEE4,False)
+	Maximum(28,TGAData(),IEEE4,False,False)
+	Minimum(28,TGAData(),IEEE4,False,False)
+EndTable
+
+'Site Table, output each time a site is completed.
+DataTable (SiteAvg,((SeqActiveFlag AND SeqIndexPrev<>SeqIndex) OR NewSite),3000)
+	CardOut(0,50000)
+	Sample (1,SiteOutput,IEEE4)
+	Average (4,TGAData(1),IEEE4,AvgDisable)
+	Average (2,ManifoldFlow(1),IEEE4,AvgDisable)
+	Average (2,PressureSampling(1),IEEE4,AvgDisable)
+	Average (1,TGAData(5),IEEE4,AvgDisable)
+	Average (3,DutyCycle(1),IEEE4,AvgDisable)
+	Average (1,LoggerTemp,IEEE4,AvgDisable)
+	Average (2,TGAData(10),IEEE4,AvgDisable) 'TGA temps
+	Average (2,TGAData(27),IEEE4,AvgDisable) 'TGA temp duty cycles
+	Average (1,V12out,IEEE4,AvgDisable)
+	Totalize (1,One,IEEE4,AvgDisable)
+	StdDev (4,TGAData(1),IEEE4,AvgDisable)
+	StdDev (2,ManifoldFlow(1),IEEE4,AvgDisable)
+	StdDev (2,PressureSampling(1),IEEE4,AvgDisable)
+	StdDev (1,TGAData(5),IEEE4,AvgDisable)
+	StdDev (3,DutyCycle(1),IEEE4,AvgDisable)
+	StdDev (1,LoggerTemp,IEEE4,AvgDisable)
+	StdDev (2,TGAData(10),IEEE4,AvgDisable) 'TGA temps
+	StdDev (2,TGAData(27),IEEE4,AvgDisable) 'TGA temp duty cycles
+	StdDev (1,V12out,IEEE4,AvgDisable)
+EndTable
+
+DataTable (TimeInfo,True,20)
+	CardOut(0,20)
+	Sample (NumSitesInSeq,CountsOnSite(1),Long)
+	Sample (NumSitesInSeq,OmitCounts(1),Long)
+	Sample (NumSitesInSeq,SiteSequence(1),Long)
+EndTable
+
+'IntervalAvg Table, output on the interval set with the constant AverageIntMin.
+DataTable (IntervalAvg,True,-1)
+	CardOut(0,200000)
+	DataInterval (0,AverageIntMin,Min,10)
+
+	Average (3,TGAData(1),IEEE4,SiteDisable(1))
+	FieldNames ("Count_1,CO2_1,N2O_1")
+	StdDev (2,TGAData(2),IEEE4,SiteDisable(1))
+	FieldNames ("CO2_STD_1,N2O_STD_1")
+	Average (1,TGAData(1),IEEE4,SiteDisable(1))
+	FieldNames ("TGA_Press_1")
+	Average (2,PressureSampling(1),IEEE4,SiteDisable(1))
+	FieldNames ("Press_1_1,Press_2_1")
+	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(1))
+	FieldNames ("Flow_1_1,Flow_2_1")
+	Totalize (1,One,IEEE4,SiteDisable(1))
+	FieldNames ("Samples_1")
+	Covariance (3,TGAData(1),IEEE4,SiteDisable(1),3)
+	FieldNames("S1CountCov1,S1CountCO2Cov,S1CountN2OCov")
+
+	Average (3,TGAData(1),IEEE4,SiteDisable(2))
+	FieldNames ("Count_2,CO2_2,N2O_2")
+	StdDev (2,TGAData(2),IEEE4,SiteDisable(2))
+	FieldNames ("CO2_STD_2,N2O_STD_2")
+	Average (1,TGAData(5),IEEE4,SiteDisable(2))
+	FieldNames ("TGA_Press_2")
+	Average (2,PressureSampling(1),IEEE4,SiteDisable(2))
+	FieldNames ("Press_1_2,Press_2_2")
+	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(2))
+	FieldNames ("Flow_1_2,Flow_2_2")
+	Totalize (1,One,IEEE4,SiteDisable(2))
+	FieldNames ("Samples_2")
+	Covariance (3,TGAData(1),IEEE4,SiteDisable(2),3)
+	FieldNames("S2CountCov1,S2CountCO2Cov,S2CountN2OCov")
+
+	Average (3,TGAData(1),IEEE4,SiteDisable(3))
+	FieldNames ("Count_3,CO2_3,N2O_3")
+	StdDev (2,TGAData(2),IEEE4,SiteDisable(3))
+	FieldNames ("CO2_STD_3,N2O_STD_3")
+	Average (1,TGAData(5),IEEE4,SiteDisable(3))
+	FieldNames ("TGA_Press_3")
+	Average (2,PressureSampling(1),IEEE4,SiteDisable(3))
+	FieldNames ("Press_1_3,Press_2_3")
+	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(3))
+	FieldNames ("Flow_1_3,Flow_2_3")
+	Totalize (1,One,IEEE4,SiteDisable(3))
+	FieldNames ("Samples_3")
+	Covariance (3,TGAData(1),IEEE4,SiteDisable(3),3)
+	FieldNames("S3CountCov1,S3CountCO2Cov,S3CountN2OCov")
+
+	Average (3,TGAData(1),IEEE4,SiteDisable(4))
+	FieldNames ("Count_4,CO2_4,N2O_4")
+	StdDev (2,TGAData(2),IEEE4,SiteDisable(4))
+	FieldNames ("CO2_STD_4,N2O_STD_4")
+	Average (1,TGAData(5),IEEE4,SiteDisable(4))
+	FieldNames ("TGA_Press_4")
+	Average (2,PressureSampling(1),IEEE4,SiteDisable(4))
+	FieldNames ("Press_1_4,Press_2_4")
+	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(4))
+	FieldNames ("Flow_1_4,Flow_2_4")
+	Totalize (1,One,IEEE4,SiteDisable(4))
+	FieldNames ("Samples_4")
+	Covariance (3,TGAData(1),IEEE4,SiteDisable(4),3)
+	FieldNames("S4CountCov1,S4CountCO2Cov,S4CountN2OCov")
+
+	Average (3,TGAData(1),IEEE4,SiteDisable(5))
+	FieldNames ("Count_5,CO2_5,N2O_5")
+	StdDev (2,TGAData(2),IEEE4,SiteDisable(5))
+	FieldNames ("CO2_STD_5,N2O_STD_5")
+	Average (1,TGAData(5),IEEE4,SiteDisable(5))
+	FieldNames ("TGA_Press_5")
+	Average (2,PressureSampling(1),IEEE4,SiteDisable(5))
+	FieldNames ("Press_1_5,Press_2_5")
+	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(5))
+	FieldNames ("Flow_1_5,Flow_2_5")
+	Totalize (1,One,IEEE4,SiteDisable(5))
+	FieldNames ("Samples_5")
+	Covariance (3,TGAData(1),IEEE4,SiteDisable(5),3)
+	FieldNames("S5CountCov1,S5CountCO2Cov,S5CountN2OCov")
+
+	Average (3,TGAData(1),IEEE4,SiteDisable(6))
+	FieldNames ("Count_6,CO2_6,N2O_6")
+	StdDev (2,TGAData(2),IEEE4,SiteDisable(6))
+	FieldNames ("CO2_STD_6,N2O_STD_6")
+	Average (1,TGAData(5),IEEE4,SiteDisable(6))
+	FieldNames ("TGA_Press_6")
+	Average (2,PressureSampling(1),IEEE4,SiteDisable(6))
+	FieldNames ("Press_1_6,Press_2_6")
+	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(6))
+	FieldNames ("Flow_1_6,Flow_2_6")
+	Totalize (1,One,IEEE4,SiteDisable(6))
+	FieldNames ("Samples_6")
+	Covariance (3,TGAData(1),IEEE4,SiteDisable(6),3)
+	FieldNames("S6CountCov1,S6CountCO2Cov,S6CountN2OCov")
+
+	Average (3,TGAData(1),IEEE4,SiteDisable(7))
+	FieldNames ("Count_7,CO2_7,N2O_7")
+	StdDev (2,TGAData(2),IEEE4,SiteDisable(7))
+	FieldNames ("CO2_STD_7,N2O_STD_7")
+	Average (1,TGAData(5),IEEE4,SiteDisable(7))
+	FieldNames ("TGA_Press_7")
+	Average (2,PressureSampling(1),IEEE4,SiteDisable(7))
+	FieldNames ("Press_1_7,Press_2_7")
+	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(7))
+	FieldNames ("Flow_1_7,Flow_2_7")
+	Totalize (1,One,IEEE4,SiteDisable(7))
+	FieldNames ("Samples_7")
+	Covariance (3,TGAData(1),IEEE4,SiteDisable(7),3)
+	FieldNames("S73CountCov1,S7CountCO2Cov,S7CountN2OCov")
+
+	Average (3,TGAData(1),IEEE4,SiteDisable(8))
+	FieldNames ("Count_8,CO2_8,N2O_8")
+	StdDev (2,TGAData(2),IEEE4,SiteDisable(8))
+	FieldNames ("CO2_STD_8,N2O_STD_8")
+	Average (1,TGAData(5),IEEE4,SiteDisable(8))
+	FieldNames ("TGA_Press_8")
+	Average (2,PressureSampling(1),IEEE4,SiteDisable(8))
+	FieldNames ("Press_1_8,Press_2_8")
+	Average (2,ManifoldFlow(1),IEEE4,SiteDisable(8))
+	FieldNames ("Flow_1_8,Flow_2_8")
+	Totalize (1,One,IEEE4,SiteDisable(8))
+	FieldNames ("Samples_8")
+	Covariance (3,TGAData(1),IEEE4,SiteDisable(8),3)
+	FieldNames("S8CountCov1,S8CountCO2Cov,S8CountN2OCov")
+
+	Totalize (1,One,IEEE4,NOT (ln_lck_a_off))
+	FieldNames ("ln_lck_a_off_Tot")
+	Totalize (1,One,IEEE4,NOT (ln_lck_b_off))
+	FieldNames ("ln_lck_b_off_Tot")
+	Totalize (1,One,IEEE4,NOT (ln_lck_c_off))
+	FieldNames ("ln_lck_c_off_Tot")
+	Totalize (1,One,IEEE4,NOT (h_smp_det_sig))
+	FieldNames ("h_smp_det_sig_Tot")
+	Totalize (1,One,IEEE4,NOT (h_ref_det_sig))
+	FieldNames ("h_ref_det_sig_Tot")
+	Totalize (1,One,IEEE4,NOT (h_smp_det_temp))
+	FieldNames ("h_smp_det_temp_Tot")
+	Totalize (1,One,IEEE4,NOT (h_ref_det_temp))
+	FieldNames ("h_ref_det_temp_Tot")
+	Totalize (1,One,IEEE4,NOT (h_las_temp))
+	FieldNames ("h_las_temp_Tot")
+	Totalize (1,One,IEEE4,NOT (h_press))
+	FieldNames ("h_press_Tot")
+EndTable
+
+TimedControl (NumSitesInSeq,1000,mSec,1,SeqIndex,SiteValveCD16(),2)
+Sub LoadSequence
+	sync_interval = 0
+	For J = 1 To NumSitesInSeq
+		sync_interval = sync_interval + CountsOnSite(J)
+		SiteValveCD16(J,2)  = CountsOnSite(J)
+		SiteValveCD16(J,1) = SiteValve(SiteSequence(J))
+	Next J
+	sync_interval = sync_interval * ScanRate_ms
+EndSub
+
+BeginProg
+
+	'---------INITIALIZE  PRESSURE CONTROL----------
+	PressureSetPt(1) = 500
+	DutyCycle(1) = 0.0
+	Pfact(1) = 0.001
+	Ifact(1) = 0.002 * (ScanRate_ms/1000)
+	Dfact(1) = 0.0 / (ScanRate_ms/1000)
+	Control_sign(1) = 1 ' if pressure is too high,increase duty cycle
+
+	PressureSetPt(2) = 500
+	DutyCycle(2) = 0.7
+	Pfact(2) = 0.0005
+	Ifact(2) = 0.002 * (ScanRate_ms/1000)
+	Dfact(2) = 0.0 / (ScanRate_ms/1000)
+	Control_sign(2) = 1 'if pressure is too high, increase duty cycle
+
+	PressureSetPt(3) = 30
+	DutyCycle(3) = 0.0
+	Pfact(3) = 0.015
+	Ifact(3) = 0.015 * (ScanRate_ms/1000)
+	Dfact(3) = 0.0 / (ScanRate_ms/1000)
+	Control_sign(3) = -1 'if pressure is too high, reduce duty cycle
+
+	'------------Initialize Manifold Valve control ---------
+	'Edit following Sections to change defaults
+
+	'Load TGA Sample Selection Manifold SDM_CD8S Settings
+	SiteValve(1) = 2^0		'Site 1 = Sample 1, SDM_CD8 Channel 1
+	SiteValve(2) = 2^1	  'Site 2 = Sample 2, SDM_CD8 Channel 2
+	SiteValve(3) = 2^2 	  'Site 3 = Sample 3, SDM_CD8 Channel 3
+	SiteValve(4) = 2^3		'Site 4 = Sample 4, SDM_CD8 Channel 4
+	SiteValve(5) = 2^4		'Site 5 = Sample 5, SDM_CD8 Channel 5
+	SiteValve(6) = 2^5		'Site 6 = Sample 6, SDM_CD8 Channel 6
+	SiteValve(7) = 2^6 	  'Site 7 = Sample 7, SDM_CD8 Channel 7
+	SiteValve(8) = 2^7 	  'Site 8 = Sample 8, SDM_CD8 Channel 8
+
+	'Load SiteSequence
+	SiteSequence(1) = 1
+	SiteSequence(2) = 2
+	SiteSequence(3) = 3
+	SiteSequence(4) = 4
+	SiteSequence(5) = 5
+	SiteSequence(6) = 6
+	SiteSequence(7) = 7
+	SiteSequence(8) = 8
+	'	SiteSequence(9) = 2
+	'	SiteSequence(10) = 1
+	'	SiteSequence(11) = 4
+	'	SiteSequence(12) = 3
+	'	SiteSequence(13) = 6
+	'	SiteSequence(14) = 5
+	'	SiteSequence(15) = 8
+	'	SiteSequence(16) = 7
+
+	' Load Site timing information. Enter numbers in seconds:
+	For J = 1 To NumSitesInSeq
+		CountsOnSite(J) = Scans_Sec * 15
+		OmitCounts(J) = Scans_Sec * 6
+	Next J
+	'Initialize Variables
+	One = 1
+	SeqIndex = 1
+	Count = 1
+	StartSeqFlag = True
+	Site = SiteSequence(SeqIndex)
+	SiteOutput = Site
+	Scan (ScanRate_ms,mSec,10,0)
+		'____________________
+		'Measure sensors and set valves:
+		TGA (TGAData(2),0,5,2)
+		SDMCD16AC (SiteValveCD16(),1,1)
+
+		'Measure the Pressure Transducers:
+		VoltDiff (PressureSampling(1),2,mV5000,8,True ,0,250,0.23,-50)
+
+		'Measure the mass flow:
+		VoltDiff (ManifoldFlowV(1),2,mV5000,12,True,0,250,ManifoldFlowMult,0)
+		VoltDiff (V12out,1,mV5000,14,True,0,250,0.01,0)
+
+		Battery (BatteryVolts)
+		PanelTemp (LoggerTemp,250)
+
+		'Calculate mass flow:
+		For J = 1 To 2
+			'Piecewise quadratic
+			Vsig = ManifoldFlowV(J)*10/V12out-1  'Compensate for excitation not equal to 10 V
+			Select Case Vsig
+			Case Is < 0.0
+				ManifoldFlow(J) = Vsig*100
+			Case 0.0 To 2.47
+				ManifoldFlow(J) = 6.3753*Vsig*Vsig*Vsig +12.922*Vsig*Vsig+46.485*Vsig-.0489
+			Case Is > 2.47
+				ManifoldFlow(J) = 112.6*Vsig*Vsig*Vsig -780.7*Vsig*Vsig+1969.2*Vsig-1508
+			EndSelect
+		Next J
+		'__________________
+
+		'Check if sequence is starting
+		If StartSeqFlag Then
+			SeqActiveFlag = False
+			If NOT Reset(1) Then
+				LoadSequence
+				TimedControl (NumSitesInSeq,sync_interval,mSec,SiteValveCD16(1,1),SeqIndex,SiteValveCD16(),1)
+				Reset(1) = True
+			ElseIf SeqIndex <> 0 Then	'i.e. when sequence starts
+				StartSeqFlag = False
+				SeqActiveFlag = True
+				CallTable (TimeInfo)
+				NewSite = TRUE
+				Reset(1)= False
+				Reset(2) = False
+			EndIf
+		EndIf
+		'Call Data Tables:
+		CallTable RawData
+		CallTable SiteAvg
+		SiteCount = IntervalCount
+		CallTable IntervalAvg
+		CallTable TGADiag
+		'Break up the TGA diagnostic flags into separate bits.
+		ln_lck_a_off = (TGAStatus AND &h0001)/&h0001
+		ln_lck_b_off = (TGAStatus AND &h0002)/&h0002
+		ln_lck_c_off = (TGAStatus AND &h0004)/&h0004
+		h_smp_det_sig = (TGAStatus AND &h0008)/&h0008
+		h_ref_det_sig = (TGAStatus AND &h0010)/&h0010
+		h_smp_det_temp = (TGAStatus AND &h0020)/&h0020
+		h_ref_det_temp = (TGAStatus AND &h0040)/&h0040
+		h_las_temp = (TGAStatus AND &h0080)/&h0080
+		h_press = (TGAStatus AND &h0100)/&h0100
+
+		'_________________Sampling System Control__________________
+		SeqIndexPrev = SeqIndex
+		NewSite = False
+		Count = Count + 1
+		SiteOutput = Site
+		If SeqActiveFlag Then
+			Site = SiteSequence(SeqIndex)
+			If SiteAvg.Output(1,1) Then Count = 1
+				EndOmit = Count > OmitCounts(SeqIndex)
+			IntervalCount = IntervalCount + 1
+			If IntervalAvg.Output(1,1) Then IntervalCount = 1
+		ElseIf NOT StartSeqFlag Then
+			SiteValveCD16(1,2) = 1
+			SiteValveCD16(1,1) = SiteValve(Site)
+			If NOT Reset(2) Then
+				Reset(2) = True
+				TimedControl (1,0,mSec,SiteValve(Site),SeqIndex,SiteValveCD16(),1)
+			EndIf
+		EndIf
+		SiteCount = Count
+	
+		AvgDisable = NOT (EndOmit AND SeqActiveFlag)
+		For J = 1 To NumberofSites
+			SiteDisable(J) = AvgDisable OR (SiteOutput<>J)
+		Next J
+		'-----------------Sampling System PRESSURE CONTROL-----------------------------
+		PressureControl(1) = PressureSampling(1)
+		PressureControl(2) = PressureSampling(2)
+		PressureControl(3) = TGApressure
+		For J = 1 To 3
+			If PressureControl(J) <> NAN Then 'put entire block in If statement; do nothing if input is NAN
+				P(J) = PressureControl(J) - PressureSetPt(J) 'pressure error
+				D(J) = PressureControl(J) - PrevPress(J) 'derivative of pressure error
+				D2(J) = D(J) - PrevD(J) 'second derivative of pressure error
+
+				PrevPress(J) = PressureControl(J)
+				PrevD(J) = D(J)
+
+				DC_delta = Control_sign(J)*(D(J)*Pfact(J)+P(J)*Ifact(J)+D2(J)*Dfact(J)) 'correction to duty cycle
+
+				'Add (integrate) the corrections for new error
+				DutyCycle(J)=DutyCycle(J) + DC_delta
+
+				'Anti-Windup
+				If DutyCycle(J) > 1 Then DutyCycle(J) = 1
+				If DutyCycle(J) < 0.2 Then DutyCycle(J) = 0.2
+
+			EndIf
+		Next J
+		PWM (DutyCycle(1),4,200,uSec)
+		PWM (DutyCycle(2),5,200,uSec)
+		PWM (DutyCycle(3),7,200,uSec)
+
+	NextScan
+EndProg
+
