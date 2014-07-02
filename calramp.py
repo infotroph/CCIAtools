@@ -10,6 +10,12 @@ Use -u for unbuffered output to the log file, e.g. if watching
 it with $(tail -f logfile.txt).
 '''
 
+# Import modules. 
+# schedule: https://github.com/dbader/schedule
+# serial: http://pyserial.sourceforge.net/
+# io, datetime, time are all documented in the Python3 module index:
+# https://docs.python.org/3/py-modindex.html
+
 import serial, io, schedule
 from datetime import datetime, timezone, timedelta
 from time import sleep
@@ -23,18 +29,19 @@ from time import sleep
 devname = '/dev/cu.usbserial-FTDEIXNY'
 
 # Timezone for log datestamps: 
-# all equipment in shed is set to UTC-6 (central standard time, no DST)
+# UTC-6 (central standard time, no DST) to match other equipment in shed
 tz = timezone(timedelta(hours=-6))
 
 # Controller IDs: 
-# Using a set of four Alicat MC-series mass flow 
-# controllers, all mounted to one baseplate and connected through a serial 
-# multiplexer box. All RS232 signals are sent to all 4 units, so 
-# to message one unit, must send the correct one-letter identifier. 
-# Max flow (sccm) of each controller: 
+# I'm using a set of four Alicat MC-series mass flow controllers, each with 
+# a different max flow rate (sccm) and each answering to a different 
+# one-letter identifier: 
 controllerMaxRates = {'a': 5000, 'b': 1000, 'c': 200, 'd': 10}
-# Mnemonic aliases for the controllers we're using
-# (Controllers C and D are idle or powered off for this experiment):
+# All four units are mounted to one baseplate and connected through a serial 
+# multiplexer box that sends all RS232 traffic to all 4 units; each unit 
+# ignores any message that doesn't begin with its ID. Let's set some 
+# mnemonic aliases for the controllers we're using (Controllers C and D 
+# are idle or powered off for this experiment):
 bulk = 'a'
 spike = 'b'
 
@@ -52,14 +59,16 @@ spiketankppm = 5000
 
 
 
-''' Functions. 
-'''
-def ts():
+## Functions. 
+
+def ts(): 
+	# Make timestamps for the log
 	return(datetime.now(tz).isoformat())
 
 def conc2flows(ppmtarget, spikeppm, totccm):
-	# pick flow rates to make desired CO2 concentration from 
-	# two airstreams, maintaining constant total flow.
+	# pick flow rates for two airstreams to make desired CO2 concentration 
+	# from two airstreams with known [CO2], 
+	# while maintaining set total flow.
 	# Returns a tuple of ccm for spike and bulk controllers respectively.
 	if ppmtarget > spikeppm:
 		return((totccm, 0))
@@ -67,22 +76,42 @@ def conc2flows(ppmtarget, spikeppm, totccm):
 	return((spikeccm, totccm-spikeccm))
 
 def flow2steps(ccm, maxccm):
-	# 64000 steps = full-scale flow.
-	# controller will ignore values over 65535 (2% overrange).
+	# Controller takes setpoints NOT in ccm, but in steps from 0 (off) 
+	# to 64000 = full-scale flow of that controller.
+	# Controller will ignore values over 65535 (2% overrange) --
+	# we send max so it goes to max instead of ignoring completely.
 	return(min(round(ccm * 64000 / maxccm), 65535))
 
 def poll(con, id):
+	# Get current status from controller `id` on connection `con`.
+	# Reply line contains seven space-separated fields:
+	# controller ID, 
+	# pressure (psia), 
+	# temperature (C),
+	# current volumetric flow (ccm or slpm, depending on controller),
+	# current mass flow (ccm or slpm, depending on controller),
+	# current setpoint (ccm or slpm, depending on controller),
+	# current gas calibration.
+	# Sample response: "A +014.32 +022.81 +00.509 +00.500 00.500     Air"
+	# TODO: return the response instead of printing it straight to the log.
 	con.write("\r" + id + "\r")
 	con.flush()
 	print(ts() + " " + con.read(), end='')
 
 def sendflow(con, id, val):
+	# Send new setpoint `val` to controller `id` on connection `con`,
+	# and capture its response (same format as when polling).
+	# TODO: return instead of print, write a proper controller class instead
+	# of passing connection objects everywhere.
 	val = flow2steps(val, controllerMaxRates[id])
 	con.write("\r" + id + str(val) + "\r")
 	con.flush()
 	print(ts() + " " + con.read(), end='')
 
 def setnextppm(ppms):
+	# Move to the next scheduled [CO2] value,
+	# update controllers to produce it, 
+	# or stop polling if done.
 	try: 
 		ppm=next(ppms)
 	except StopIteration:
@@ -91,20 +120,23 @@ def setnextppm(ppms):
 	sendflow(sio, spike, spikeccm)
 	sendflow(sio, bulk, bulkccm)
 
-''' And go. 
-'''
 
+## And we're ready to go. 
+
+# Set up connections
 s = serial.Serial(devname, baudrate=19200, timeout=0.1)
 sio = io.TextIOWrapper(io.BufferedRWPair(s, s))
 
+# TODO: How to handle multiple ramps?
 rampup = iter(range(ppmlow, ppmhigh, ppmstep))
-doneramping = False
 
+# schedule frequent polling and less-frequent CO2 changes.
 pollbulk = schedule.every(pollinterval).seconds.do(poll, con=sio, id=bulk)
 pollspike = schedule.every(pollinterval).seconds.do(poll, con=sio, id=spike)
 nextspike = schedule.every(steptime).seconds.do(setnextppm, rampup)
 
-# Flush LGR and wait to obtain stable concentration
+# Flush LGR with zero air and wait to obtain stable concentration
+# TODO: Move times to globals section
 sendflow(sio, bulk, totalflowccm)
 sendflow(sio, spike, 0)
 sleep(10)
@@ -115,11 +147,13 @@ while nextspike in schedule.jobs:
 	schedule.run_pending()
 	sleep(0.5)
 
+#Done. Shut everything down.
 sendflow(sio, spike, 0)
 sendflow(sio, bulk, 0)
-
 schedule.clear()
 
+# One last reading to be sure setpoints dropped. 
+# TODO: Should throw error if not.
 poll(sio, bulk)
 poll(sio, spike)
 
