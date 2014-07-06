@@ -56,7 +56,7 @@ ppmstep = 200	# change concentration by this much per step
 pollinterval = 1
 totalflowccm = 500
 spiketankppm = 5000
-
+zeropurge = 300 # seconds to purge system at script start
 
 
 ## Functions. 
@@ -136,10 +136,9 @@ pollspike = schedule.every(pollinterval).seconds.do(poll, con=sio, id=spike)
 nextspike = schedule.every(steptime).minutes.do(setnextppm, rampup)
 
 # Flush LGR with zero air and wait to obtain stable concentration
-# TODO: Move times to globals section
 sendflow(sio, bulk, totalflowccm)
 sendflow(sio, spike, 0)
-sleep(10)
+sleep(zeropurge)
 
 # Loop until we we've used all the values in rampup, at which time
 # nextspike will remove itself from the job list.
