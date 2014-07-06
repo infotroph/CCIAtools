@@ -48,7 +48,7 @@ spike = 'b'
 # Concentration ramp settings: 
 # Step up and down a given range of concentrations
 # TODO: Document how to change number/direction of ramps
-steptime = 30 	# minutes at each concentration.
+steptime = 5 	# minutes at each concentration.
 ppmlow = 200 		# don't mix below this
 ppmhigh = 1000	# don't mix above this
 ppmstep = 200	# change concentration by this much per step
@@ -133,7 +133,7 @@ rampup = iter(range(ppmlow, ppmhigh, ppmstep))
 # schedule frequent polling and less-frequent CO2 changes.
 pollbulk = schedule.every(pollinterval).seconds.do(poll, con=sio, id=bulk)
 pollspike = schedule.every(pollinterval).seconds.do(poll, con=sio, id=spike)
-nextspike = schedule.every(steptime).seconds.do(setnextppm, rampup)
+nextspike = schedule.every(steptime).minutes.do(setnextppm, rampup)
 
 # Flush LGR with zero air and wait to obtain stable concentration
 # TODO: Move times to globals section
