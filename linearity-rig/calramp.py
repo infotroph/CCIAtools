@@ -47,14 +47,14 @@ spike = 'b'
 
 # Concentration ramp settings: 
 # Step up and down a given range of concentrations
-# TODO: Document how to change number/direction of ramps
+nramps = 3 		# How many times to ramp up and down?
 steptime = 5 	# minutes at each concentration.
-ppmlow = 200 		# don't mix below this
-ppmhigh = 1000	# don't mix above this
-ppmstep = 200	# change concentration by this much per step
+ppmlow = 0 		# don't mix below this
+ppmhigh = 5000	# don't mix above this
+ppmstep = 50	# change concentration by this much per step
 
 pollinterval = 1
-totalflowccm = 500
+totalflowccm = 350
 spiketankppm = 5000
 zeropurge = 300 # seconds to purge system at script start
 
@@ -127,24 +127,34 @@ def setnextppm(ppms):
 s = serial.Serial(devname, baudrate=19200, timeout=0.1)
 sio = io.TextIOWrapper(io.BufferedRWPair(s, s))
 
-# TODO: How to handle multiple ramps?
-rampup = iter(range(ppmlow, ppmhigh, ppmstep))
 
-# schedule frequent polling and less-frequent CO2 changes.
+# Set up controller polling schedule
 pollbulk = schedule.every(pollinterval).seconds.do(poll, con=sio, id=bulk)
 pollspike = schedule.every(pollinterval).seconds.do(poll, con=sio, id=spike)
-nextspike = schedule.every(steptime).minutes.do(setnextppm, rampup)
 
 # Flush LGR with zero air and wait to obtain stable concentration
 sendflow(sio, bulk, totalflowccm)
 sendflow(sio, spike, 0)
 sleep(zeropurge)
 
-# Loop until we we've used all the values in rampup, at which time
-# nextspike will remove itself from the job list.
-while nextspike in schedule.jobs:
-	schedule.run_pending()
-	sleep(0.5)
+for i in range(nramps):
+	rampup = iter(range(ppmlow, ppmhigh+1, ppmstep))
+	nextspike = schedule.every(steptime).minutes.do(setnextppm, rampup)
+
+
+	# Loop until we we've used all the values in rampup, at which time
+	# nextspike will remove itself from the job list.
+	while nextspike in schedule.jobs:
+		schedule.run_pending()
+		sleep(0.5)
+
+	# Now ramp back down.
+	rampdown = iter(reversed(range(ppmlow, ppmhigh+1, ppmstep)))
+	nextspike = schedule.every(steptime).minutes.do(setnextppm, rampdown)
+
+	while nextspike in schedule.jobs:
+		schedule.run_pending()
+		sleep(0.5)
 
 #Done. Shut everything down.
 sendflow(sio, spike, 0)
