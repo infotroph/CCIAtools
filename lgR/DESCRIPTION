@@ -1,0 +1,9 @@
+Package: lgR
+Type: Package
+Title: Handle data from LGR OA-ICOS isotope analyzers
+Version: 0.1
+Date: 2014-07-06
+Author: Chris Black
+Maintainer: Chris Black <chris@bodger.org>
+Description: This package provides functions written to manipulate the data files from a Los Gatos Research model CCIA-36EP CO2 isotope analyzer. I expect that they should work with other models of LGR analyzer as well, but no promises.
+License: Unlimited
