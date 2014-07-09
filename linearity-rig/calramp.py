@@ -139,7 +139,6 @@ def setnextppm(ppms):
 s = serial.Serial(devname, baudrate=19200, timeout=0.1)
 sio = io.TextIOWrapper(io.BufferedRWPair(s, s))
 
-
 # Set up controller polling schedule
 pollbulk = schedule.every(pollinterval).seconds.do(poll, con=sio, id=bulk)
 pollspike = schedule.every(pollinterval).seconds.do(poll, con=sio, id=spike)
@@ -177,7 +176,7 @@ sendflow(sio, spike, 0)
 sendflow(sio, bulk, 0)
 schedule.clear()
 
-# One last reading to be sure setpoints dropped. 
+# One last reading to be sure setpoints dropped to 0. 
 # TODO: Should throw error if not.
 poll(sio, bulk)
 poll(sio, spike)
