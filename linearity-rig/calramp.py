@@ -31,11 +31,11 @@ devname = '/dev/cu.usbserial-FTDEIXNY'
 # Concentration ramp settings: 
 # Controllers will step from ppmlow to ppmhigh and back again, 
 # nramps times.
-ppmlow = 0 		# lowest ppm desired
+ppmlow = 200 		# lowest ppm desired
 ppmhigh = 5000	# highest ppm desired
 ppmstep = 50	# change concentration by this many ppm per step
 nramps = 3 		# How many times to ramp up and down?
-steptime = 5 	# minutes at each concentration.
+steptime = 3 	# minutes at each concentration.
 
 # Seconds between controller log entries. 
 # Changing this interval does not change controller performance 
