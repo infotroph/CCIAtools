@@ -50,8 +50,8 @@ totalflowccm = 350
 # the closer each step will be to requested target ppm.
 spiketankppm = 5000 
 
-# Seconds to purge system with bulk air at script start
-zeropurge = 300 
+# Minutes to purge system with bulk air at script start
+zeropurge = 5 
 
 # Controller IDs: 
 # I'm using a set of four Alicat MC-series mass flow controllers, each with 
@@ -147,7 +147,7 @@ pollspike = schedule.every(pollinterval).seconds.do(poll, con=sio, id=spike)
 # Flush LGR with zero air and wait to obtain stable concentration
 sendflow(sio, bulk, totalflowccm)
 sendflow(sio, spike, 0)
-sleep(zeropurge)
+sleep(zeropurge*60)
 
 for i in range(nramps):
 	rampup = iter(range(ppmlow, ppmhigh+1, ppmstep))
