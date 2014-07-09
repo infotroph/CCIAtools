@@ -149,24 +149,28 @@ sendflow(sio, bulk, totalflowccm)
 sendflow(sio, spike, 0)
 sleep(zeropurge*60)
 
-for i in range(nramps):
-	rampup = iter(range(ppmlow, ppmhigh+1, ppmstep))
-	nextspike = schedule.every(steptime).minutes.do(setnextppm, rampup)
+try:
+	for i in range(nramps):
+		rampup = iter(range(ppmlow, ppmhigh+1, ppmstep))
+		nextspike = schedule.every(steptime).minutes.do(setnextppm, rampup)
 
+		# Loop until we we've used all the values in rampup, at which time
+		# nextspike will remove itself from the job list.
+		while nextspike in schedule.jobs:
+			schedule.run_pending()
+			sleep(0.5)
 
-	# Loop until we we've used all the values in rampup, at which time
-	# nextspike will remove itself from the job list.
-	while nextspike in schedule.jobs:
-		schedule.run_pending()
-		sleep(0.5)
+		# Now ramp back down.
+		rampdown = iter(reversed(range(ppmlow, ppmhigh+1, ppmstep)))
+		nextspike = schedule.every(steptime).minutes.do(setnextppm, rampdown)
 
-	# Now ramp back down.
-	rampdown = iter(reversed(range(ppmlow, ppmhigh+1, ppmstep)))
-	nextspike = schedule.every(steptime).minutes.do(setnextppm, rampdown)
-
-	while nextspike in schedule.jobs:
-		schedule.run_pending()
-		sleep(0.5)
+		while nextspike in schedule.jobs:
+			schedule.run_pending()
+			sleep(0.5)
+except:
+	# if anything goes wrong, including a keyboard interrupt, 
+	# bail from loop and go on to the end-of-script shutdown
+	pass
 
 #Done. Shut everything down.
 sendflow(sio, spike, 0)
