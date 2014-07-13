@@ -1,57 +1,45 @@
 \name{readflow.day}
 \alias{readflow.day}
-%- Also NEED an '\alias' for EACH other topic documented here.
+\alias{readbatch.day}
 \title{
-%%  ~~function to do ... ~~
+Read a day's worth of LGR data files
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+Given a date string and a path to a directory full of LGR data with one subfolder per day, these functions read all files of the requested type (continuous flow or batch injection) and return them as a single dataframe.
 }
 \usage{
 readflow.day(date, path = "/Volumes/lgrdata/", strip.se = TRUE)
+readbatch.day(date, path = "/Volumes/lgrdata/", strip.se = TRUE, exclude.last = FALSE)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{date}{
-%%     ~~Describe \code{date} here~~
-}
-  \item{path}{
-%%     ~~Describe \code{path} here~~
-}
-  \item{strip.se}{
-%%     ~~Describe \code{strip.se} here~~
-}
+    \item{date}{ Character vector in the date format used by your instrument. Mine is DDMMMYYYY, e.g. "31Jun2014".}
+
+    \item{path}{ Path to the data directory, NOT including the date string. Defaults to "/Volumes/lgrdata/", which is the path for the CCIA's automatic SMB share when mounted locally on an OS X system.}
+    
+    \item{strip.se}{ Logical: Remove standard error columns for each variable? See Details.}
+    
+    \item{exclude.last}{ Logical: If TRUE, will skip the last file in the directory. Useful if you're reading data while the machine is in the middle of a batch measurement.}
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+When the analyzer is running at its highest rate (1 Hz for the CCIA-36EP), all standard error estimates (data columns with ending in \code{_se}) will be zero, because each datapoint is a single unaveraged observation. \code{strip.se=TRUE} removes these columns, *without* checking whether they contain any nonzeroes; if `any(df$N_Fits_Avg.d != 1)`, then you probably don't want to strip SEs. 
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
-}
-\references{
-%% ~put references to the literature/web site here ~
-}
-\author{
-%%  ~~who you are~~
-}
-\note{
-%%  ~~further notes~~
+Data frame with 60 (if \code{strip.se==TRUE}) or 115 (if \code{strip.se==FALSE}) columns: All variables from the LGR file (see \code{?\link{read.lgrbatch}} and \code{\link{read.lgrflow}} for details), plus:
+\item{time}{POSIXct version of character vector "Time"}
+\item{filename}{factor containing the last five digits of the filename, e.g. "f0001" for a flow file, "b0001" for a batch file.}
 }
 
-%% ~Make other sections like Warning with \section{Warning }{....} ~
+\author{
+Chris Black}
+\note{
+In addition to storing multiple files from each injection, the CCIA also produces daily zip archives; future versions of these function may or may not allow reading from those without prior decompression.
+}
 
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+\code{\link{read.lgrflow}} and \code{\link{read.lgrbatch}} for the underlying workhorse functions. 
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
+\dontrun{
 ## The function is currently defined as
 function (date, path = "/Volumes/lgrdata/", strip.se = TRUE) 
 {
@@ -80,7 +68,6 @@ function (date, path = "/Volumes/lgrdata/", strip.se = TRUE)
     return(df)
   }
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
+}
+
+\keyword{ IO }

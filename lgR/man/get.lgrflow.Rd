@@ -29,6 +29,7 @@ Chris Black <chris@bodger.org>
 \code{\link{readflow.day}}
 }
 \examples{
+\dontrun{
 ##---- Should be DIRECTLY executable !! ----
 ##-- ==>  Define data, use random,
 ##--	or do  help(data=index)  for the standard data sets.
@@ -45,6 +46,7 @@ function (file)
 
     return(f)
   }
+}
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

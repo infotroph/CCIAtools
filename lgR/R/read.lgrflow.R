@@ -20,5 +20,5 @@ function(file){
 		"-e '/#=-=-=-=-=-=-=-=-=Start/{x;q;}'")
 	
 	# skip=1 to remove stray pre-header timestamp
-	read.csv(pipe(command), skip=1)
+	read.csv(pipe(command), skip=1, stringsAsFactors=FALSE)
 }

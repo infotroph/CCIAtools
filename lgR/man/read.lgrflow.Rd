@@ -1,66 +1,63 @@
 \name{read.lgrflow}
 \alias{read.lgrflow}
-%- Also NEED an '\alias' for EACH other topic documented here.
+\alias{read.lgrbatch}
 \title{
-%%  ~~function to do ... ~~
+Read one LGR file
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
-}
+An LGR isotope analyzer uses the same file format for all datapoints, but the file headers and footers differ depending whether it is running in "flow" mode or "batch" mode. These functions handle the format differences. In most cases you will not want to call these directly, but instead use \code{\link{readflow.day}} or \code{\link{readbatch.day}} (which use them internally).}
 \usage{
+read.lgrbatch(file)
 read.lgrflow(file)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{file}{
-%%     ~~Describe \code{file} here~~
-}
-}
-\details{
-%%  ~~ If necessary, more details than the description above ~~
+	Character vector giving the path to the file.}
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
-}
-\references{
-%% ~put references to the literature/web site here ~
-}
+Data frame with all variables from the LGR file. On my machine it has 113 columns, but this may be configuration-dependent. 'Time' is a character vector, all others are numeric.}
 \author{
-%%  ~~who you are~~
-}
+Chris Black}
 \note{
-%%  ~~further notes~~
-}
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
+These functions make internal calls to the text-processing shell command \code{sed}, which is available on most UNIX-alikes but probably will not work on Windows. If you have a portable fix, please get in touch.}
 
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+\code{\link{readflow.day}} and \code{\link{readbatch.day}}, which use these functions to read a whole directory of batch files into one dataframe.
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
+\dontrun{
+## read.lgrflow is currently defined as
+function(file){
 
-## The function is currently defined as
-function (file) 
-{
-    if (any(grep("\\.txt\\.zip$", file))) {
+    # Files are plaintext while being written, then compressed for storage.  
+    if(any(grep("\\.txt\\.zip$", file))){
         method = "unzip -p"
-    }
-    else {
+    }else{
         method = "cat"
     }
-    command = paste(method, file, "| sed -e '/-----BEGIN PGP MESSAGE-----/{x;q;}'", 
+
+    # File ends with one of:
+    #   * Nothing if file still being written 
+    #   * a PGP-encrypted settings block if encrypt is on, 
+    #   * plaintext settings if encrypt is off.
+    # We can use one sed command can handle all three of these cases:
+    command = paste(
+        method, 
+        file, 
+        "| sed -e '/-----BEGIN PGP MESSAGE-----/{x;q;}'",
         "-e '/#=-=-=-=-=-=-=-=-=Start/{x;q;}'")
-    read.csv(pipe(command), skip = 1)
+    
+    # skip=1 to remove stray pre-header timestamp
+    read.csv(pipe(command), skip=1, stringsAsFactors=FALSE)
+}
+
+
+## read.lgrbatch is currently defined as
+function (file) 
+{
+    command = paste("sed -n '/^.\\{65\\}/p'", file)
+    read.csv(pipe(command), stringsAsFactors=FALSE)
   }
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
+}
+\keyword{ IO }

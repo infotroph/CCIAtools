@@ -2,11 +2,10 @@
 \alias{lgR-package}
 \alias{lgR}
 \docType{package}
-\title{
-Data handling for LGR isotope analyzers
-}
+\title{Data handling for LGR isotope analyzers}
 \description{
-These functions were written to manipulate dat from an LGR model CCIA-36EP carbon dioxide isotope analyzer. They're intended to be compatible with any LGR analyzer, but I haven't tested them with data from any other machine.}
+These functions were written to manipulate dat from an LGR model CCIA-36EP carbon dioxide isotope analyzer. They're intended to be compatible with any LGR analyzer, but I haven't tested them with data from any other machine.
+}
 
 \details{
 \tabular{ll}{
@@ -32,15 +31,12 @@ Chris Black
 
 Maintainer: Chris Black <chris@bodger.org>
 }
-\references{
-\link[http://lgrinc.com]{Los Gatos Research website}
-}
+\references{\href{http://lgrinc.com}{Los Gatos Research website}}
+
 \keyword{ package }
-\seealso{
-~~ Optional links to other man pages, e.g. ~~
-~~ \code{\link[<pkg>:<pkg>-package]{<pkg>}} ~~
-}
+
 \examples{
+\dontrun{
 # read in all batch files from today
 jul6.injections = readbatch.day("06Jul2014", path="~/LGRarchive/")
 
@@ -66,4 +62,5 @@ with(jul6.injections, cbind(
 	`[CO2]` = tapply(X.CO2._ppm, filename, meanse),
 	`d13C` = tapply(d13C, filename, meanse),
 	`d18O` = tapply(d18O, filename, meanse)))
+}
 }
