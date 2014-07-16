@@ -16,6 +16,8 @@ Very much in progress. If any of this looks interesting, get in touch: black11@i
   switching is handled by a CR3000 datalogger controlling an 8-way manifold and a set of bypass valves for pressure and flow tuning. 
   I expect this directory to contain mostly datalogger programs.
   
+  * 2umCCIA120136_ini: configuration files from the DeLucia lab's instrument. My changes aren't necessarily blessed by LGR staff and I do not know which values are specific to this particular instrument, so use anything from this directory with great care!
+ 
 ## Coming soon:
   * R scripts to read, quality-control, and analyze 1 Hz coninuous sampling data, both with and without timed inlet switching.
   
