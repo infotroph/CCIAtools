@@ -23,7 +23,7 @@ Very much in progress. If any of this looks interesting, get in touch: black11@i
   
   * R scripts to read and summarize batch-mode data (discrete injections).
   
-  * CCIA calibration routines
+  * CCIA calibration routines.
   
   * Tweaked versions of CCIA configuration files, especially linearity tables and fine-tuned injection parameters 
-  (N.B. these tunings are probably specific to my instrument!)
+  (N.B. these tunings are probably specific to my instrument!).
