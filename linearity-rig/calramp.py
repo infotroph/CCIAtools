@@ -10,12 +10,12 @@ Use -u for unbuffered output to the log file, e.g. if watching
 it with $(tail -f logfile.txt).
 '''
 
-# Import modules. 
+## Import modules. 
+
 # schedule: https://github.com/dbader/schedule
 # serial: http://pyserial.sourceforge.net/
 # io, datetime, time are all documented in the Python3 module index:
 # https://docs.python.org/3/py-modindex.html
-
 import serial, io, schedule
 from datetime import datetime, timezone, timedelta
 from time import sleep
@@ -28,9 +28,30 @@ from time import sleep
 # Change to match your hardware.
 devname = '/dev/cu.usbserial-FTDEIXNY'
 
-# Timezone for log datestamps: 
-# UTC-6 (central standard time, no DST) to match other equipment in shed
-tz = timezone(timedelta(hours=-6))
+# Concentration ramp settings: 
+# Controllers will step from ppmlow to ppmhigh and back again, 
+# nramps times.
+ppmlow = 200 		# lowest ppm desired
+ppmhigh = 5000	# highest ppm desired
+ppmstep = 50	# change concentration by this many ppm per step
+nramps = 3 		# How many times to ramp up and down?
+steptime = 3 	# minutes at each concentration.
+
+# Seconds between controller log entries. 
+# Changing this interval does not change controller performance 
+# at all, just sets how often we check in on them.
+pollinterval = 1	
+
+# Desired flow rate of mixture, in sccm
+totalflowccm = 350	
+
+# Known [CO2] in spike tank, ppm. 
+# The more precisely this value is known,
+# the closer each step will be to requested target ppm.
+spiketankppm = 5000 
+
+# Minutes to purge system with bulk air at script start
+zeropurge = 5 
 
 # Controller IDs: 
 # I'm using a set of four Alicat MC-series mass flow controllers, each with 
@@ -45,18 +66,9 @@ controllerMaxRates = {'a': 5000, 'b': 1000, 'c': 200, 'd': 10}
 bulk = 'a'
 spike = 'b'
 
-# Concentration ramp settings: 
-# Step up and down a given range of concentrations
-# TODO: Document how to change number/direction of ramps
-steptime = 5 	# minutes at each concentration.
-ppmlow = 200 		# don't mix below this
-ppmhigh = 1000	# don't mix above this
-ppmstep = 200	# change concentration by this much per step
-
-pollinterval = 1
-totalflowccm = 500
-spiketankppm = 5000
-zeropurge = 300 # seconds to purge system at script start
+# Timezone for log datestamps: 
+# UTC-6 (central standard time, no DST) to match other equipment in shed
+tz = timezone(timedelta(hours=-6))
 
 
 ## Functions. 
@@ -127,31 +139,44 @@ def setnextppm(ppms):
 s = serial.Serial(devname, baudrate=19200, timeout=0.1)
 sio = io.TextIOWrapper(io.BufferedRWPair(s, s))
 
-# TODO: How to handle multiple ramps?
-rampup = iter(range(ppmlow, ppmhigh, ppmstep))
-
-# schedule frequent polling and less-frequent CO2 changes.
+# Set up controller polling schedule
 pollbulk = schedule.every(pollinterval).seconds.do(poll, con=sio, id=bulk)
 pollspike = schedule.every(pollinterval).seconds.do(poll, con=sio, id=spike)
-nextspike = schedule.every(steptime).minutes.do(setnextppm, rampup)
 
 # Flush LGR with zero air and wait to obtain stable concentration
 sendflow(sio, bulk, totalflowccm)
 sendflow(sio, spike, 0)
-sleep(zeropurge)
+sleep(zeropurge*60)
 
-# Loop until we we've used all the values in rampup, at which time
-# nextspike will remove itself from the job list.
-while nextspike in schedule.jobs:
-	schedule.run_pending()
-	sleep(0.5)
+try:
+	for i in range(nramps):
+		rampup = iter(range(ppmlow, ppmhigh+1, ppmstep))
+		nextspike = schedule.every(steptime).minutes.do(setnextppm, rampup)
+
+		# Loop until we we've used all the values in rampup, at which time
+		# nextspike will remove itself from the job list.
+		while nextspike in schedule.jobs:
+			schedule.run_pending()
+			sleep(0.5)
+
+		# Now ramp back down.
+		rampdown = iter(reversed(range(ppmlow, ppmhigh+1, ppmstep)))
+		nextspike = schedule.every(steptime).minutes.do(setnextppm, rampdown)
+
+		while nextspike in schedule.jobs:
+			schedule.run_pending()
+			sleep(0.5)
+except:
+	# if anything goes wrong, including a keyboard interrupt, 
+	# bail from loop and go on to the end-of-script shutdown
+	pass
 
 #Done. Shut everything down.
 sendflow(sio, spike, 0)
 sendflow(sio, bulk, 0)
 schedule.clear()
 
-# One last reading to be sure setpoints dropped. 
+# One last reading to be sure setpoints dropped to 0. 
 # TODO: Should throw error if not.
 poll(sio, bulk)
 poll(sio, spike)

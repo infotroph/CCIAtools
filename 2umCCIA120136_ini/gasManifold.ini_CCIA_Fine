@@ -1,0 +1,48 @@
+# Gas manifold settings
+#
+# TYPE	VALVE	MINUTES	NAME
+# ----------------------------------------------------------
+UNK	1	300	ZeroAir
+UNK	16	10	Vac
+UNK	6	150	500.7ppm
+UNK	16	10	Vac
+UNK	2	150	3000ppm
+UNK	16	10	Vac
+UNK	3	150	1011ppm
+UNK	16	10	Vac
+UNK	4	150	805.4ppm
+UNK	16	10	Vac
+UNK	5	150	654ppm
+UNK	16	10	Vac
+UNK	6	150	500.7ppm
+UNK	16	10	Vac
+UNK	7	150	445.08ppm
+UNK	16	10	Vac
+UNK	8	150	377.75ppm
+UNK	16	10	Vac
+UNK	9	150	371.4ppm
+UNK	16	10	Vac
+UNK	10	150	49500ppm
+UNK	16	10	Vac
+UNK	6	150	500.7ppm
+UNK	16	10	Vac
+
+
+# Do we start off by measuring the reference gas(es) [Y|N]
+#
+START_W_REF	Y
+
+# Repeated cycle through the unknown gas sampling valves. After doing
+# this N times, sample the reference gas(es) one time.
+#
+NUM_UNK_LOOPS	1
+
+# Is a MIU unit plugged in? [Y|N]
+#
+MIU_ENABLED	Y
+
+# Which RMM416 is the MIU plugged into [0-7]. If there is only
+# one card, set this to 0.
+#
+RMM416_NUMBER	0
+

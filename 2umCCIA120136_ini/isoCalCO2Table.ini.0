@@ -1,0 +1,4 @@
+# isotope calibration table
+# uncal_total_conc  conc_factor shift13_ppmil shift18_ppm
+0.000000 1 0 0
+400000.00 1 0 0  

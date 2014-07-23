@@ -1,0 +1,11 @@
+# Line Lock
+#
+# ----------------------------------------------------------
+RMM416_NUMBER	0
+RMM416_CHANNEL	0
+RMM416_RANGE	BIP5
+V0		-4.494
+GHZ_THRESHOLD	0.003
+VOLTS2DGHZ	0.005
+UPDATE_INTERVAL	1
+
