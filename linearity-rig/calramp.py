@@ -139,16 +139,16 @@ def setnextppm(ppms):
 s = serial.Serial(devname, baudrate=19200, timeout=0.1)
 sio = io.TextIOWrapper(io.BufferedRWPair(s, s))
 
-# Set up controller polling schedule
-pollbulk = schedule.every(pollinterval).seconds.do(poll, con=sio, id=bulk)
-pollspike = schedule.every(pollinterval).seconds.do(poll, con=sio, id=spike)
+try: 
+	# Set up controller polling schedule
+	pollbulk = schedule.every(pollinterval).seconds.do(poll, con=sio, id=bulk)
+	pollspike = schedule.every(pollinterval).seconds.do(poll, con=sio, id=spike)
 
-# Flush LGR with zero air and wait to obtain stable concentration
-sendflow(sio, bulk, totalflowccm)
-sendflow(sio, spike, 0)
-sleep(zeropurge*60)
+	# Flush LGR with zero air and wait to obtain stable concentration
+	sendflow(sio, bulk, totalflowccm)
+	sendflow(sio, spike, 0)
+	sleep(zeropurge*60)
 
-try:
 	for i in range(nramps):
 		rampup = iter(range(ppmlow, ppmhigh+1, ppmstep))
 		nextspike = schedule.every(steptime).minutes.do(setnextppm, rampup)
