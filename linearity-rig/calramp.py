@@ -165,7 +165,7 @@ try:
 
 		while nextspike in schedule.jobs:
 			schedule.run_pending()
-			sleep(0.5)
+			sleep(0.1)
 except:
 	# if anything goes wrong, including a keyboard interrupt, 
 	# bail from loop and go on to the end-of-script shutdown
