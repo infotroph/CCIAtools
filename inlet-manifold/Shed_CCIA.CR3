@@ -321,15 +321,7 @@ BeginProg
 	SiteSequence(6) = 6	' Prairie Low
 	SiteSequence(7) = 7	' Miscanthus High
 	SiteSequence(8) = 8	' Miscanthus Low
-	'	SiteSequence(9) = 2
-	'	SiteSequence(10) = 1
-	'	SiteSequence(11) = 4
-	'	SiteSequence(12) = 3
-	'	SiteSequence(13) = 6
-	'	SiteSequence(14) = 5
-	'	SiteSequence(15) = 8
-	'	SiteSequence(16) = 7
-
+	
 	' Load Site timing information. Enter numbers in seconds:
 	For J = 1 To NumSitesInSeq
 		CountsOnSite(J) = Scans_Sec * 90
@@ -391,7 +383,6 @@ BeginProg
 		'Call Data Tables and Store Data
 		CallTable RawData
 		CallTable SiteAvg
-'		SiteCount = IntervalCount
 		CallTable IntervalAvg
 
 		'_________________Sampling System Control__________________
@@ -413,7 +404,6 @@ BeginProg
 				TimedControl (1,0,mSec,SiteValve(Site),SeqIndex,SiteValveCD16(),1)
 			EndIf
 		EndIf
-'		SiteCount = Count
 	
 		AvgDisable = NOT (EndOmit AND SeqActiveFlag)
 		For J = 1 To NumberofSites
