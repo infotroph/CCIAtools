@@ -174,10 +174,8 @@ DataTable (RawData,True,-1)
 	CardOut (0 ,-1)
 	Sample (1,Site,IEEE4)
 	Sample (2,ManifoldFlow(1),IEEE4)
-	Sample (2,ManifoldFlowV,IEEE4)   'added 6/12/14
 	Sample (2,PressureSampling(1),IEEE4)
 	Sample (3,DutyCycle(1),IEEE4)
-	Sample (1,LoggerTemp,IEEE4)
 	Sample (1,StartSeqFlag,IEEE4)
 	Sample (1,SeqActiveFlag,IEEE4)
 EndTable
