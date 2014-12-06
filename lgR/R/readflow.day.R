@@ -15,7 +15,7 @@ function(
 		df=read.lgrflow(filename)
 		len=nchar(filename)
 		if(nrow(df) > 0){ # TODO: Is this the best place to check for empty files?
-			df$filename = substr(filename, len-12,len-8)
+			df$filename = regmatches(filename, regexpr("f[0-9]+", filename))
 		}
 		return(df)
 	}

@@ -51,7 +51,7 @@ function (date, path = "/Volumes/lgrdata/", strip.se = TRUE)
         df = read.lgrflow(filename)
         len = nchar(filename)
         if (nrow(df) > 0) {
-            df$filename = substr(filename, len - 12, len - 8)
+            df$filename = regmatches(filename, regexpr("f[0-9]+", filename))
         }
         return(df)
     }
