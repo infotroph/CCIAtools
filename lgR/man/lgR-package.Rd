@@ -11,7 +11,7 @@ These functions were written to manipulate dat from an LGR model CCIA-36EP carbo
 \tabular{ll}{
 Package: \tab lgR\cr
 Type: \tab Package\cr
-Version: \tab 0.1.1-prealpha\cr
+Version: \tab 0.2.0-prealpha\cr
 Date: \tab 2014-07-06\cr
 License: \tab Unlimited\cr
 }

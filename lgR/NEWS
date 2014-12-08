@@ -1,0 +1,12 @@
+New in version 0.2.0:
+	Change in data format: the "filename" variable in dataframes read by `readflow.day` or `readbatch.day` now contains the whole basename of the file on disk instead of just the sequential-numbered portion.
+	old:
+		> a = readflow.day("01Aug2014", path="~/data")
+		> unique(a$filename)
+		[1] "f0000" "f0001" "f0002"
+	new:
+		> a = readflow.day("01Aug2014", path="~/data")
+		> unique(a$filename)
+		[1] "01Aug2014_f0000.txt.zip" "01Aug2014_f0001.txt.zip" "01Aug2014_f0002.txt"
+	If you have code that relies on the old naming scheme, recover it with:
+		> a$filename = gsub(".*_([bf][0-9]{4}).*", "\\1", a$filename)

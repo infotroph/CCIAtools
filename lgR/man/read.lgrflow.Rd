@@ -15,7 +15,7 @@ read.lgrflow(file)
 	Character vector giving the path to the file.}
 }
 \value{
-Data frame with all variables from the LGR file. On my machine it has 113 columns, but this may be configuration-dependent. 'Time' is a character vector, all others are numeric.}
+Data frame with all variables from the LGR file (113 columns on my machine, but this may be configuration-dependent) plus a new column containing the filename from wihch it was read. 'Time' and 'filename' are character vectors, all others are numeric.}
 \author{
 Chris Black}
 \note{
@@ -48,16 +48,23 @@ function(file){
         "-e '/#=-=-=-=-=-=-=-=-=Start/{x;q;}'")
     
     # skip=1 to remove stray pre-header timestamp
-    read.csv(pipe(command), skip=1, stringsAsFactors=FALSE)
+    df = read.csv(pipe(command), skip=1, stringsAsFactors=FALSE)
+    df$filename = basename(file)
+    return(df)
 }
 
 
 ## read.lgrbatch is currently defined as
-function (file) 
-{
+function(file){
+    # LGR batch files begin with short summary lines 
+    # and end with a PGP-encrypted settings block. 
+    # These lines are much shorter than data lines, so filter out 
+    # by removing any line containing less than 65 characters.
     command = paste("sed -n '/^.\\{65\\}/p'", file)
-    read.csv(pipe(command), stringsAsFactors=FALSE)
-  }
+    df = read.csv(pipe(command), stringsAsFactors=FALSE)
+    df$filename = basename(file)
+    return(df)
+}
 }
 }
 \keyword{ IO }

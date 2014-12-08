@@ -10,17 +10,12 @@ function(
 	on.exit(options(digits.secs=prevdigits))
 	options(digits.secs=3)
 
-	readwrap=function(filename){
-		df=read.lgrbatch(filename)
-		len=nchar(filename)
-		df$filename = substr(filename, len-8,len-4)
-		return(df)
-	}
-	
 	path = paste(path, date, "/batch/", sep="")
 	filenames = list.files(path)
 	if(exclude.last){filenames = filenames[-length(filenames)]}
-	df = lapply(paste(path,filenames, sep=""), readwrap)
+	df = lapply(
+		paste(path,filenames, sep=""), 
+		function(x){print(x); read.lgrbatch(x)})
 	df = do.call("rbind", df)
 	
 	df$time = as.POSIXct(df$Time, format="%m/%d/%y %H:%M:%OS")

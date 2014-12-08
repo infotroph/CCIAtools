@@ -9,17 +9,6 @@ function(
 	on.exit(options(digits.secs=prevdigits))
 	options(digits.secs=3)
 
-	readwrap=function(filename){
-		# adds "f0001" portion of filename to the dataframe
-		print(filename)
-		df=read.lgrflow(filename)
-		len=nchar(filename)
-		if(nrow(df) > 0){ # TODO: Is this the best place to check for empty files?
-			df$filename = regmatches(filename, regexpr("f[0-9]+", filename))
-		}
-		return(df)
-	}
-
 	# Get all filenames in the directory, then throw out any 
 	# that don't look like data
 	dirstr = paste(path, date, "/flow/", sep="")
@@ -27,7 +16,9 @@ function(
 	datafiles = grep("\\.txt(\\.zip)?$", filenames)
 	filenames = filenames[datafiles]
 
-	df = lapply(paste(dirstr,filenames, sep=""), readwrap)
+	df = lapply(
+		paste(dirstr,filenames, sep=""), 
+		function(x){print(x); read.lgrflow(x)})
 	df = do.call("rbind", df)
 	
 	df$time = as.POSIXct(df$Time, format="%m/%d/%y %H:%M:%OS")
