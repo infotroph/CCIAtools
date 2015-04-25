@@ -1,3 +1,6 @@
+New in version 0.2.1:
+	New function `markInterval`, for finding variable numbers of datapoints within a fixed time interval before a known breakpoint.
+
 New in version 0.2.0:
 	Change in data format: the "filename" variable in dataframes read by `readflow.day` or `readbatch.day` now contains the whole basename of the file on disk instead of just the sequential-numbered portion.
 	old:
