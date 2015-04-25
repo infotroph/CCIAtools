@@ -4,7 +4,7 @@
 \docType{package}
 \title{Data handling for LGR isotope analyzers}
 \description{
-These functions were written to manipulate dat from an LGR model CCIA-36EP carbon dioxide isotope analyzer. They're intended to be compatible with any LGR analyzer, but I haven't tested them with data from any other machine.
+These functions were written to manipulate data from an LGR model CCIA-36EP carbon dioxide isotope analyzer. They're intended to be compatible with any LGR analyzer, but I haven't tested them with data from any other machine.
 }
 
 \details{
@@ -17,13 +17,13 @@ License: \tab Unlimited\cr
 }
 The general workflow: 
 
-1. Read in your data. If a single continuous flow file: `read.lgrflow("path/to/file.zip")`. If a whole day's worth of batch files: `readbatch.day("01Jan2014")`, and so on.
+1. Read in your data. If a single continuous flow file: \code{read.lgrflow("path/to/file.zip")}. If a whole day's worth of batch files: \code{readbatch.day("01Jan2014")}, and so on.
 
-2. Filter out unwanted times. \code{markInterval} can help, other tools not written yet.
+2. Align timestamps with any external files (temperature logger, flow controller values, inlet manifold settings, etc). Not written yet.
 
-3. Align timestamps with any external files (temperature logger, flow controller values, inlet manifold settings, etc). Not written yet.
+3. Filter out unwanted times. \code{markInterval} can help, other tools not written yet.
 
-3. Check instrument stability and extract summary statistics from the stable times. I have some of these functions under testing but not yet in this package.
+4. Check instrument stability and extract summary statistics from the stable times. I have some of these functions under testing but not yet in this package.
 
 }
 \author{
